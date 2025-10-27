@@ -10,7 +10,7 @@ Real-time performance is pursued wherever feasible but is secondary to reconstru
 
 ## Goal
 
-To develop a **resolution-enhancing software system** for microscopic imaging, capable of reconstructing higher-quality, higher-resolution representations of observed samples through computational modeling and optical understanding.
+To develop a **resolution-enhancing software system** for microscopic imaging, capable of reconstructing higher-quality, higher-resolution representations of observed samples through computational modelling and optical understanding.
 
 ---
 
@@ -27,9 +27,9 @@ To develop a **resolution-enhancing software system** for microscopic imaging, c
 
 ## Technical Highlights
 
-- Physics-driven reconstruction approach (PSF modeling, deconvolution, fusion).  
+- Physics-driven reconstruction approach (PSF modelling, deconvolution, fusion).  
 - Modular design supporting multiple imaging and reconstruction modes.  
-- GPU acceleration planned where beneficial; correctness prioritized over speed.  
+- GPU acceleration planned where beneficial; correctness prioritised over speed.  
 - Real-time achievable for v0–v2 under suitable computational conditions.  
 
 ---
@@ -38,4 +38,4 @@ To develop a **resolution-enhancing software system** for microscopic imaging, c
 
 **Reson** seeks to unify computational optics and microscopy under one framework —  
 enabling software-based resolution enhancement through **accurate physical modeling**, **multi-channel data fusion**, and **illumination-structured reconstruction**.  
-Its ultimate aim is to extend the optical limits of microscopy without altering the hardware.
+Its ultimate aim is to extend the optical limits of microscopy.

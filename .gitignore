@@ -48,9 +48,13 @@ Thumbs.db
 *.npz
 data/raw/*
 data/processed/*
+data/samples/Z009/
+
+# Keep synthetic data and placeholders
 !data/samples/.gitkeep
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+!data/synthetic/
 
 # Logs
 *.log

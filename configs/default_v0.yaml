@@ -1,0 +1,52 @@
+# Reson v0 - Default Configuration
+# Resolution Enhancement Microscopy - Image Enhancement Pipeline
+
+version: v0
+experiment_name: default_v0
+
+# Enhancement pipeline configuration
+enhancement:
+  # List of enhancement modules to apply in sequence
+  modules:
+    - name: denoising
+      type: BilateralFilter
+      enabled: true
+      params:
+        d: 9                    # Diameter of pixel neighborhood
+        sigma_color: 75         # Filter sigma in the color space
+        sigma_space: 75         # Filter sigma in the coordinate space
+    
+    - name: sharpening
+      type: UnsharpMasking
+      enabled: true
+      params:
+        sigma: 1.0              # Gaussian blur sigma
+        amount: 1.5             # Sharpening strength
+        threshold: 0            # Threshold for sharpening mask
+
+# Input/Output configuration
+io:
+  input_format: auto            # auto, tif, png, jpg
+  output_format: tif            # tif, png, jpg
+  output_bit_depth: 16          # 8 or 16
+  normalize_input: true         # Normalize to [0, 1] range
+  preserve_dtype: false         # Keep original data type if possible
+
+# Processing configuration
+processing:
+  convert_to_grayscale: false   # Convert RGB to grayscale
+  clip_output: true             # Clip values to valid range
+  
+# Metrics to compute (optional)
+metrics:
+  enabled: true
+  compute:
+    - sharpness                 # Gradient-based sharpness
+    - laplacian_variance        # Laplacian variance (focus measure)
+  
+# Visualization settings
+visualization:
+  plot_comparison: true         # Show before/after comparison
+  plot_metrics: true            # Plot metric values
+  figsize: [12, 6]              # Figure size in inches
+  dpi: 100                      # Figure DPI

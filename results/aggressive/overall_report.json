@@ -1,0 +1,143 @@
+{
+  "experiment_name": "aggressive",
+  "config_file": "configs\\presets\\aggressive.yaml",
+  "timestamp": "2025-11-01T23:32:07.261283",
+  "total_images": 6,
+  "output_directory": "B:\\Academia\\Projects\\Reconstruction imaging\\data\\processed\\aggressive",
+  "avg_psnr_before": 20.480995178222656,
+  "avg_psnr_after": 21.77752113342285,
+  "avg_psnr_improvement": 1.2965272665023804,
+  "avg_ssim_before": 0.8846054176489512,
+  "avg_ssim_after": 0.9165590504805247,
+  "avg_ssim_improvement": 0.031953632831573486,
+  "avg_sharpness_before": 0.17971248428026834,
+  "avg_sharpness_after": 0.1565141212195158,
+  "individual_results": [
+    {
+      "image": "cells_degraded.tif",
+      "output": "cells_degraded_enhanced.tif",
+      "shape": [
+        512,
+        512
+      ],
+      "sharpness_after": 0.059419114142656326,
+      "laplacian_after": 61.07381054792495,
+      "sharpness": 0.059419114142656326,
+      "laplacian_variance": 61.07381054792495,
+      "psnr_before": 25.849937438964844,
+      "psnr_after": 27.523529052734375,
+      "psnr_improvement": 1.6735916137695312,
+      "ssim_before": 0.9817564487457275,
+      "ssim_after": 0.9875849485397339,
+      "ssim_improvement": 0.005828499794006348,
+      "mse_before": 0.0026001969818025827,
+      "mse_after": 0.0017686713254079223,
+      "sharpness_before": 0.11747263371944427
+    },
+    {
+      "image": "circles_degraded.tif",
+      "output": "circles_degraded_enhanced.tif",
+      "shape": [
+        512,
+        512
+      ],
+      "sharpness_after": 0.07341939210891724,
+      "laplacian_after": 99.50574493408203,
+      "sharpness": 0.07341939210891724,
+      "laplacian_variance": 99.50574493408203,
+      "psnr_before": 23.979084014892578,
+      "psnr_after": 24.954280853271484,
+      "psnr_improvement": 0.9751968383789062,
+      "ssim_before": 0.9770178198814392,
+      "ssim_after": 0.9813023209571838,
+      "ssim_improvement": 0.004284501075744629,
+      "mse_before": 0.004000289831310511,
+      "mse_after": 0.003195743076503277,
+      "sharpness_before": 0.13152660429477692
+    },
+    {
+      "image": "grid_degraded.tif",
+      "output": "grid_degraded_enhanced.tif",
+      "shape": [
+        512,
+        512
+      ],
+      "sharpness_after": 0.24924804270267487,
+      "laplacian_after": 307.0642492733896,
+      "sharpness": 0.24924804270267487,
+      "laplacian_variance": 307.0642492733896,
+      "psnr_before": 15.283105850219727,
+      "psnr_after": 16.671558380126953,
+      "psnr_improvement": 1.3884525299072266,
+      "ssim_before": 0.6462569832801819,
+      "ssim_after": 0.7563352584838867,
+      "ssim_improvement": 0.11007827520370483,
+      "mse_before": 0.029627125710248947,
+      "mse_after": 0.021520093083381653,
+      "sharpness_before": 0.19693122804164886
+    },
+    {
+      "image": "lines_degraded.tif",
+      "output": "lines_degraded_enhanced.tif",
+      "shape": [
+        512,
+        512
+      ],
+      "sharpness_after": 0.1866113394498825,
+      "laplacian_after": 262.81673044861236,
+      "sharpness": 0.1866113394498825,
+      "laplacian_variance": 262.81673044861236,
+      "psnr_before": 17.645036697387695,
+      "psnr_after": 19.103607177734375,
+      "psnr_improvement": 1.4585704803466797,
+      "ssim_before": 0.8111011385917664,
+      "ssim_after": 0.8612353205680847,
+      "ssim_improvement": 0.05013418197631836,
+      "mse_before": 0.017198733985424042,
+      "mse_after": 0.012292472645640373,
+      "sharpness_before": 0.1809680014848709
+    },
+    {
+      "image": "mixed_degraded.tif",
+      "output": "mixed_degraded_enhanced.tif",
+      "shape": [
+        512,
+        512
+      ],
+      "sharpness_after": 0.1095435619354248,
+      "laplacian_after": 101.4090306795988,
+      "sharpness": 0.1095435619354248,
+      "laplacian_variance": 101.4090306795988,
+      "psnr_before": 23.112783432006836,
+      "psnr_after": 24.805912017822266,
+      "psnr_improvement": 1.6931285858154297,
+      "ssim_before": 0.9508366584777832,
+      "ssim_after": 0.966856837272644,
+      "ssim_improvement": 0.01602017879486084,
+      "mse_before": 0.004883393179625273,
+      "mse_after": 0.0033068053890019655,
+      "sharpness_before": 0.16870331764221191
+    },
+    {
+      "image": "siemens_star_degraded.tif",
+      "output": "siemens_star_degraded_enhanced.tif",
+      "shape": [
+        512,
+        512
+      ],
+      "sharpness_after": 0.26084327697753906,
+      "laplacian_after": 237.16462707374012,
+      "sharpness": 0.26084327697753906,
+      "laplacian_variance": 237.16462707374012,
+      "psnr_before": 17.016021728515625,
+      "psnr_after": 17.606245040893555,
+      "psnr_improvement": 0.5902233123779297,
+      "ssim_before": 0.9406634569168091,
+      "ssim_after": 0.946039617061615,
+      "ssim_improvement": 0.005376160144805908,
+      "mse_before": 0.019879156723618507,
+      "mse_after": 0.017353035509586334,
+      "sharpness_before": 0.2826731204986572
+    }
+  ]
+}

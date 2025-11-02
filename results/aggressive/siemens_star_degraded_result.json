@@ -1,0 +1,21 @@
+{
+  "image": "siemens_star_degraded.tif",
+  "output": "siemens_star_degraded_enhanced.tif",
+  "shape": [
+    512,
+    512
+  ],
+  "sharpness_after": 0.26084327697753906,
+  "laplacian_after": 237.16462707374012,
+  "sharpness": 0.26084327697753906,
+  "laplacian_variance": 237.16462707374012,
+  "psnr_before": 17.016021728515625,
+  "psnr_after": 17.606245040893555,
+  "psnr_improvement": 0.5902233123779297,
+  "ssim_before": 0.9406634569168091,
+  "ssim_after": 0.946039617061615,
+  "ssim_improvement": 0.005376160144805908,
+  "mse_before": 0.019879156723618507,
+  "mse_after": 0.017353035509586334,
+  "sharpness_before": 0.2826731204986572
+}

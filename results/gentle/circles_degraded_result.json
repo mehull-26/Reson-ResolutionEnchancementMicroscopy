@@ -1,0 +1,21 @@
+{
+  "image": "circles_degraded.tif",
+  "output": "circles_degraded_enhanced.tif",
+  "shape": [
+    512,
+    512
+  ],
+  "sharpness_after": 0.1392638236284256,
+  "laplacian_after": 419.7376615067478,
+  "sharpness": 0.1392638236284256,
+  "laplacian_variance": 419.7376615067478,
+  "psnr_before": 23.979084014892578,
+  "psnr_after": 24.130870819091797,
+  "psnr_improvement": 0.15178680419921875,
+  "ssim_before": 0.9770178198814392,
+  "ssim_after": 0.9778584241867065,
+  "ssim_improvement": 0.000840604305267334,
+  "mse_before": 0.004000289831310511,
+  "mse_after": 0.0038628948386758566,
+  "sharpness_before": 0.13152660429477692
+}

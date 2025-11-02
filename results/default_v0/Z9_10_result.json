@@ -1,0 +1,12 @@
+{
+  "image": "Z9_10.jpg",
+  "output": "Z9_10_enhanced.jpg",
+  "shape": [
+    1024,
+    1024
+  ],
+  "sharpness_after": 0.02041323110461235,
+  "laplacian_after": 859.5625533913202,
+  "sharpness": 0.02041323110461235,
+  "laplacian_variance": 859.5625533913202
+}

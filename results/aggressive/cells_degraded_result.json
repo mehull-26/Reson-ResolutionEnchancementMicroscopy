@@ -1,0 +1,21 @@
+{
+  "image": "cells_degraded.tif",
+  "output": "cells_degraded_enhanced.tif",
+  "shape": [
+    512,
+    512
+  ],
+  "sharpness_after": 0.059419114142656326,
+  "laplacian_after": 61.07381054792495,
+  "sharpness": 0.059419114142656326,
+  "laplacian_variance": 61.07381054792495,
+  "psnr_before": 25.849937438964844,
+  "psnr_after": 27.523529052734375,
+  "psnr_improvement": 1.6735916137695312,
+  "ssim_before": 0.9817564487457275,
+  "ssim_after": 0.9875849485397339,
+  "ssim_improvement": 0.005828499794006348,
+  "mse_before": 0.0026001969818025827,
+  "mse_after": 0.0017686713254079223,
+  "sharpness_before": 0.11747263371944427
+}

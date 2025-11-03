@@ -1,0 +1,5 @@
+Pattern: fluorescent_beads
+PSF: fluorescence
+PSF params: {'wavelength': 520, 'numerical_aperture': 1.4, 'pixel_size': 0.065, 'size': 41, 'ni': 1.518, 'ns': 1.33, 'ti': 150}
+Noise: gaussian, level=0.02
+Image size: (512, 512)

@@ -36,6 +36,21 @@ Complete documentation for **Reson** - Resolution Enhancement Microscopy Framewo
    - Algorithm selection guide
    - Best practices
 
+5. **[PSF Generation Guide](05_PSF_Generation.md)** 🆕
+   - Point Spread Function theory
+   - 4 PSF generation methods (Gaussian, Airy, Gibson-Lanni, Blind)
+   - Parameter selection guide
+   - Measuring PSF experimentally
+   - Troubleshooting PSF issues
+
+6. **[Deconvolution Guide](06_Deconvolution_Guide.md)** 🆕
+   - Complete deconvolution workflow
+   - 3 algorithms (Richardson-Lucy, Wiener, Total Variation)
+   - Algorithm comparison and selection
+   - Configuration examples
+   - Parameter tuning strategies
+   - Troubleshooting artifacts
+
 ---
 
 ## Quick Reference

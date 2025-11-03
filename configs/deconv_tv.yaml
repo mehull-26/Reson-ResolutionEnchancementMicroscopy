@@ -1,0 +1,79 @@
+# Total Variation (TV) Deconvolution Configuration
+# Edge-preserving, reduces ringing artifacts (advanced)
+
+version: v1
+experiment_name: "deconv_tv"
+
+enhancement:
+  modules:
+    # Optional: Pre-denoising
+    - name: "Pre-denoising"
+      type: BilateralFilter
+      enabled: true
+      params:
+        d: 5
+        sigma_color: 40
+        sigma_space: 40
+    
+    # TV Deconvolution
+    - name: "TV Deconvolution"
+      type: TVDeconvolution
+      enabled: true
+      params:
+        iterations: 100                    # Number of iterations (50-200)
+                                           # More iterations = better convergence but slower
+        
+        # PSF Configuration
+        psf_method: "gaussian"             # 'gaussian', 'airy', 'gibson_lanni', 'blind', 'custom'
+        psf_params:
+          wavelength: 550                  # Wavelength in nm
+          numerical_aperture: 1.4          # Objective NA
+          pixel_size: 0.065                # Pixel size in micrometers
+          size: 31                         # PSF size (odd number)
+        
+        # TV regularization parameters
+        lambda_tv: 0.01                    # TV regularization strength (0.001-0.1)
+                                           # Higher = smoother edges, less ringing
+        tau: 0.05                          # Gradient descent step size (0.01-0.1)
+                                           # Smaller = more stable but slower
+
+# Input/Output configuration
+io:
+  input_format: auto
+  output_format: tif
+  output_bit_depth: 16
+  normalize_input: true
+  preserve_dtype: false
+
+# Processing configuration
+processing:
+  convert_to_grayscale: false
+  clip_output: true
+
+# Metrics to compute
+metrics:
+  enabled: true
+  compute:
+    - sharpness
+    - laplacian_variance
+    - brenner_sharpness
+
+# Visualization settings
+visualization:
+  plot_comparison: false
+  plot_metrics: false
+  figsize: [12, 6]
+  dpi: 100
+
+# Notes:
+# 1. TV deconvolution is SLOW (many iterations) but produces excellent results
+# 2. Best for images with sharp edges (cells, structures)
+# 3. Reduces ringing artifacts compared to Wiener
+# 4. Good for piecewise-smooth images
+# 5. May create "staircase" artifacts if lambda_tv too high
+# 6. Typical settings:
+#    - Low noise: lambda_tv = 0.001-0.005
+#    - Moderate noise: lambda_tv = 0.01
+#    - High noise: lambda_tv = 0.05-0.1
+# 7. If not converging, decrease tau (e.g., 0.01-0.03)
+# 8. If too slow, reduce iterations to 50 (may under-converge)

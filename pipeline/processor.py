@@ -12,6 +12,7 @@ from enhancement import (
     UnsharpMasking, GuidedFilter, BilateralSharpening, LaplacianSharpening,
     BilateralFilter, NonLocalMeans, GaussianDenoising, MedianFilter, AnisotropicDiffusion
 )
+from enhancement.deconvolution import RichardsonLucy, WienerDeconvolution, TVDeconvolution
 from metrics.quality import psnr, ssim, mse, snr
 from metrics.sharpness import (
     gradient_sharpness, laplacian_variance, brenner_sharpness,
@@ -32,6 +33,10 @@ ENHANCEMENT_MODULES = {
     'GaussianDenoising': GaussianDenoising,
     'MedianFilter': MedianFilter,
     'AnisotropicDiffusion': AnisotropicDiffusion,
+    # Deconvolution (PSF-based)
+    'RichardsonLucy': RichardsonLucy,
+    'WienerDeconvolution': WienerDeconvolution,
+    'TVDeconvolution': TVDeconvolution,
 }
 
 METRIC_FUNCTIONS = {

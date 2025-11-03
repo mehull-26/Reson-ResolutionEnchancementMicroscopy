@@ -1,0 +1,76 @@
+# Wiener Deconvolution Configuration
+# Fast, non-iterative deconvolution (good for Gaussian noise)
+
+version: v1
+experiment_name: "deconv_wiener"
+
+enhancement:
+  modules:
+    # Optional: Pre-denoising
+    - name: "Pre-denoising"
+      type: GaussianDenoising
+      enabled: true
+      params:
+        sigma: 0.5
+    
+    # Wiener Deconvolution
+    - name: "Wiener Deconvolution"
+      type: WienerDeconvolution
+      enabled: true
+      params:
+        # PSF Configuration
+        psf_method: "gaussian"             # 'gaussian', 'airy', 'gibson_lanni', 'blind', 'custom'
+        psf_params:
+          wavelength: 550                  # Wavelength in nm
+          numerical_aperture: 1.4          # Objective NA
+          pixel_size: 0.065                # Pixel size in micrometers
+          size: 31                         # PSF size (odd number)
+        
+        # Wiener filter parameters
+        noise_power: 0.01                  # Noise power estimate (0.001-0.1)
+                                           # Higher = more smoothing, less ringing
+        balance: 0.1                       # Signal/noise balance (0.0-1.0)
+                                           # Controls deconvolution strength
+    
+    # Optional: Post-sharpening
+    - name: "Post-sharpening"
+      type: UnsharpMasking
+      enabled: false
+      params:
+        sigma: 1.0
+        amount: 0.3
+
+# Input/Output configuration
+io:
+  input_format: auto
+  output_format: tif
+  output_bit_depth: 16
+  normalize_input: true
+  preserve_dtype: false
+
+# Processing configuration
+processing:
+  convert_to_grayscale: false
+  clip_output: true
+
+# Metrics to compute
+metrics:
+  enabled: true
+  compute:
+    - sharpness
+    - laplacian_variance
+
+# Visualization settings
+visualization:
+  plot_comparison: false
+  plot_metrics: false
+  figsize: [12, 6]
+  dpi: 100
+
+# Notes:
+# 1. Wiener is MUCH faster than Richardson-Lucy (single FFT vs iterative)
+# 2. Good for Gaussian noise, less ideal for Poisson noise (fluorescence)
+# 3. May produce ringing artifacts - increase noise_power to reduce
+# 4. For clean images: noise_power = 0.001-0.01
+# 5. For noisy images: noise_power = 0.01-0.1
+# 6. Can produce negative values - will be clipped to 0

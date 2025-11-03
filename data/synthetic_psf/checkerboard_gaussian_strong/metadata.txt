@@ -1,0 +1,4 @@
+Pattern: checkerboard
+PSF: gaussian_strong
+PSF params: {'wavelength': 550, 'numerical_aperture': 0.5, 'pixel_size': 0.1, 'size': 31}
+Image size: (512, 512)

@@ -10,17 +10,19 @@ Complete reference for all enhancement algorithms implemented in Reson v0.
 1. [Overview](#overview)
 2. [Denoising Algorithms](#denoising-algorithms)
 3. [Sharpening Algorithms](#sharpening-algorithms)
-4. [Algorithm Selection Guide](#algorithm-selection-guide)
-5. [Mathematical Background](#mathematical-background)
-6. [Performance Comparison](#performance-comparison)
+4. [Deconvolution Algorithms](#deconvolution-algorithms)
+5. [Algorithm Selection Guide](#algorithm-selection-guide)
+6. [Mathematical Background](#mathematical-background)
+7. [Performance Comparison](#performance-comparison)
 
 ---
 
 ## Overview
 
-Reson v0 implements **9 enhancement algorithms** operating in the spatial domain:
+Reson v0 implements **12 enhancement algorithms** operating in the spatial domain:
 - **5 Denoising Algorithms** - Remove noise while preserving structure
 - **4 Sharpening Algorithms** - Enhance edges and fine details
+- **3 Deconvolution Algorithms** - Reverse optical blur using PSF
 
 All algorithms work on grayscale or RGB images and process in the [0, 1] float range internally.
 
@@ -543,6 +545,264 @@ params:
 
 ---
 
+## Deconvolution Algorithms
+
+**New in v1:** Deconvolution algorithms reverse optical blur using Point Spread Function (PSF) modeling.
+
+💡 **See the comprehensive [Deconvolution Guide](06_Deconvolution_Guide.md) for detailed workflow and examples.**
+
+### What is Deconvolution?
+
+Deconvolution reverses image blur caused by the microscope's optical system:
+
+```
+Observed Image = True Image ⊗ PSF + Noise
+                      ↓ (deconvolution)
+Deconvolved Image ≈ True Image
+```
+
+Unlike sharpening (which amplifies high frequencies), deconvolution uses knowledge of the PSF to intelligently restore the original image.
+
+**Key Requirements:**
+1. **Accurate PSF** - From theory, measurement, or estimation
+2. **PSF-limited blur** - Not motion blur or other artifacts
+3. **Reasonable SNR** - Very noisy images need pre-denoising
+
+**When to use:** Diffraction-limited imaging, fluorescence microscopy, quantitative analysis
+
+**When NOT to use:** Motion blur, unknown blur, already sharp images
+
+📖 **PSF Generation:** See [PSF Generation Guide](05_PSF_Generation.md) for creating accurate PSFs.
+
+---
+
+### 1. Richardson-Lucy Deconvolution
+
+**Class:** `RichardsonLucy`  
+**Type:** Iterative maximum likelihood  
+**Speed:** ⚡⚡ Moderate (iterative)  
+**Best for:** Fluorescence microscopy, Poisson noise
+
+#### How it Works
+
+Iteratively refines estimate by comparing convolved estimate with observed image:
+
+```
+u^(k+1) = u^(k) · [PSF* ⊗ (y / (PSF ⊗ u^(k)))]
+```
+
+Based on Bayesian maximum likelihood for Poisson statistics (photon counting).
+
+#### Parameters
+
+```yaml
+type: RichardsonLucy
+params:
+  psf_method: "gibson_lanni"    # PSF generation method
+  psf_params:                    # PSF-specific parameters
+    wavelength: 520              # nm (emission wavelength)
+    numerical_aperture: 1.4
+    pixel_size: 0.065            # µm
+    size: 31
+    ni: 1.518                    # Immersion medium (oil)
+    ns: 1.33                     # Sample (aqueous)
+    ti: 150                      # Depth (µm)
+  iterations: 20                 # 10-50 typical
+  regularization: 0.001          # Prevents negative values
+```
+
+**PSF Methods:**
+- `"gaussian"` - Fast approximation (Rayleigh criterion)
+- `"airy"` - Diffraction-limited (Bessel function)
+- `"gibson_lanni"` - Fluorescence-specific (most accurate)
+- `"custom"` - Load measured PSF from file
+- `"blind"` - Estimate PSF from image
+
+**Parameter Guide:**
+- `iterations` (10-50): Number of refinement steps
+  - 10-15: Mild, safe
+  - 20-30: **Balanced (recommended)**
+  - 40-50: Aggressive (may over-sharpen)
+  
+- `regularization` (0.0-0.01): Prevents negative values
+  - 0.001: **Light (recommended)**
+  - 0.01: Heavy (reduces sharpness slightly)
+
+#### Pros & Cons
+
+✅ **Advantages:**
+- Physically motivated (Poisson statistics)
+- Excellent for fluorescence
+- Preserves non-negativity
+- Handles photon noise well
+- Most popular deconvolution method
+
+❌ **Disadvantages:**
+- Slower (iterative)
+- Can over-sharpen with too many iterations
+- Requires accurate PSF
+- PSF accuracy critical
+
+#### Use Cases
+- Widefield fluorescence microscopy
+- Photon counting (Poisson noise)
+- Resolution enhancement
+- Quantitative imaging
+- Publication-quality images
+
+**Typical performance:** ~1.5s for 512×512, 31×31 PSF, 20 iterations
+
+---
+
+### 2. Wiener Deconvolution
+
+**Class:** `WienerDeconvolution`  
+**Type:** Frequency domain, closed-form  
+**Speed:** ⚡⚡⚡⚡ Very Fast  
+**Best for:** Quick processing, Gaussian noise
+
+#### How it Works
+
+Solves deconvolution in frequency domain using single FFT operation:
+
+```
+U(f) = [H*(f) / (|H(f)|² + K)] · Y(f)
+```
+
+Where K is noise-to-signal ratio. Balances deconvolution with noise suppression.
+
+#### Parameters
+
+```yaml
+type: WienerDeconvolution
+params:
+  psf_method: "airy"
+  psf_params:
+    wavelength: 550
+    numerical_aperture: 1.4
+    pixel_size: 0.065
+    size: 31
+  noise_power: 0.01              # Regularization parameter
+```
+
+**Parameter Guide:**
+- `noise_power` (0.001-0.1): Noise-to-signal ratio
+  - 0.001: Low noise, aggressive
+  - 0.01: **Moderate (recommended)**
+  - 0.1: High noise, conservative
+
+#### Pros & Cons
+
+✅ **Advantages:**
+- Extremely fast (~0.1s)
+- Closed-form solution (non-iterative)
+- Good for Gaussian noise
+- Excellent for previews
+- Simple (one parameter)
+
+❌ **Disadvantages:**
+- Can produce negative values
+- Less effective for Poisson noise
+- May introduce ringing
+- Not as high quality as Richardson-Lucy
+
+#### Use Cases
+- Brightfield microscopy
+- Fast previews
+- High-throughput processing
+- Gaussian noise dominant
+- When speed is critical
+
+**Typical performance:** ~0.1s for 512×512, 31×31 PSF
+
+---
+
+### 3. Total Variation (TV) Deconvolution
+
+**Class:** `TVDeconvolution`  
+**Type:** Regularized optimization  
+**Speed:** ⚡ Slow (iterative optimization)  
+**Best for:** Edge preservation, noisy images
+
+#### How it Works
+
+Minimizes data fidelity term plus total variation regularization:
+
+```
+minimize: ||PSF ⊗ u - y||² + λ · TV(u)
+```
+
+Where TV(u) = sum of image gradients. Encourages piecewise smooth solutions.
+
+#### Parameters
+
+```yaml
+type: TVDeconvolution
+params:
+  psf_method: "gaussian"
+  psf_params:
+    wavelength: 550
+    numerical_aperture: 1.0
+    pixel_size: 0.1
+    size: 31
+  iterations: 100                # More than RL
+  lambda_tv: 0.01                # Regularization strength
+```
+
+**Parameter Guide:**
+- `iterations` (50-200): Optimization steps
+  - 50: Fast, may not converge
+  - 100: **Balanced (recommended)**
+  - 200: Careful optimization
+  
+- `lambda_tv` (0.001-0.1): Edge preservation vs smoothness
+  - 0.001: Weak, sharper
+  - 0.01: **Moderate (recommended)**
+  - 0.1: Strong, may over-smooth
+
+#### Pros & Cons
+
+✅ **Advantages:**
+- Excellent edge preservation
+- Reduces noise while deconvolving
+- Good for piecewise smooth images
+- Handles both Gaussian and Poisson noise
+
+❌ **Disadvantages:**
+- Slower than other methods
+- Can create "staircase" artifacts
+- May over-smooth fine details
+- More parameters to tune
+
+#### Use Cases
+- Low-light/noisy fluorescence
+- Images with strong edges
+- When noise is problematic
+- Edge-preserving reconstruction
+
+**Typical performance:** ~5s for 512×512, 31×31 PSF, 100 iterations
+
+---
+
+### Deconvolution Comparison
+
+| Feature | Richardson-Lucy | Wiener | Total Variation |
+|---------|-----------------|--------|-----------------|
+| **Speed** | ⚡⚡ | ⚡⚡⚡⚡ | ⚡ |
+| **Quality** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
+| **Best noise type** | Poisson | Gaussian | Both |
+| **Iterations** | 10-50 | 1 (direct) | 50-200 |
+| **Edge preservation** | Good | Poor | Excellent |
+| **Typical use** | Fluorescence | Quick/Preview | Noisy images |
+
+**Choosing an algorithm:**
+- **Fluorescence microscopy** → Richardson-Lucy + Gibson-Lanni PSF
+- **Brightfield, need speed** → Wiener + Airy PSF
+- **Very noisy images** → TV + appropriate PSF
+- **General purpose** → Richardson-Lucy + Gaussian PSF
+
+---
+
 ## Algorithm Selection Guide
 
 ### Decision Tree
@@ -550,14 +810,20 @@ params:
 ```
 What is your primary goal?
 
-1. Remove Noise?
+1. Reverse Optical Blur (Deconvolution)?
+   ├─ Fluorescence microscopy → RichardsonLucy + Gibson-Lanni PSF
+   ├─ Brightfield, need speed → WienerDeconvolution + Airy PSF
+   ├─ Very noisy images → TVDeconvolution
+   └─ See Deconvolution Guide for full workflow
+
+2. Remove Noise?
    ├─ Light noise, need speed → BilateralFilter
    ├─ Heavy noise, want quality → NonLocalMeans
    ├─ Salt-and-pepper noise → MedianFilter
    ├─ Need edge preservation → AnisotropicDiffusion
    └─ Just quick smoothing → GaussianDenoising
 
-2. Enhance Edges?
+3. Enhance Edges?
    ├─ General purpose → UnsharpMasking
    ├─ Avoid halos → BilateralSharpening or GuidedFilter
    ├─ Maximum speed → LaplacianSharpening
@@ -589,6 +855,18 @@ What is your primary goal?
 - NonLocalMeans (h=12) → UnsharpMasking (amount=0.8, threshold=2)
 ```
 **Use:** Very degraded samples
+
+#### Combo 5: Fluorescence Deconvolution
+```yaml
+- BilateralFilter (d=9) → RichardsonLucy (iterations=20)
+```
+**Use:** Widefield fluorescence, PSF-limited blur
+
+#### Combo 6: Fast Deconvolution
+```yaml
+- GaussianDenoising (sigma=0.5) → WienerDeconvolution
+```
+**Use:** Quick previews, brightfield
 
 ---
 

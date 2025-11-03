@@ -1,0 +1,24 @@
+{
+  "experiment_name": "deconv_richardson_lucy",
+  "config_file": "configs\\deconv_rl.yaml",
+  "timestamp": "2025-11-03T20:13:41.744409",
+  "total_images": 1,
+  "output_directory": "B:\\Academia\\Projects\\Reconstruction imaging\\data\\processed\\deconv_richardson_lucy",
+  "avg_sharpness": 0.24344700574874878,
+  "avg_laplacian": 909.9783172607422,
+  "individual_results": [
+    {
+      "image": "blurred.tif",
+      "output": "blurred_enhanced.tif",
+      "shape": [
+        512,
+        512
+      ],
+      "sharpness_after": 0.24344700574874878,
+      "laplacian_after": 909.9783172607422,
+      "sharpness": 0.24344700574874878,
+      "laplacian_variance": 909.9783172607422,
+      "brenner_sharpness": 2500.44189453125
+    }
+  ]
+}

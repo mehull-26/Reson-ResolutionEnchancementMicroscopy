@@ -1,0 +1,4 @@
+Pattern: siemens_star
+PSF: gaussian_mild
+PSF params: {'wavelength': 550, 'numerical_aperture': 1.0, 'pixel_size': 0.1, 'size': 21}
+Image size: (512, 512)

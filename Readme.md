@@ -1,5 +1,6 @@
 # Reson – Resolution Enhancement Microscopy
-IN DEVELOPMENT (NOT RECOMMENDED TO BE USED BY THE GENERAL PUBLIC, CODE WAS MODIFIED TO OPTIMIZE THE RESULTS, SOME PARTS OF THE CODE MIGHT NOT BE CONSISTENT FOR NOW)
+**IN DEVELOPMENT (NOT RECOMMENDED TO BE USED BY THE GENERAL PUBLIC, CODE WAS MODIFIED TO OPTIMIZE THE RESULTS, SOME PARTS OF THE CODE MIGHT NOT BE CONSISTENT FOR NOW)**
+
 **Reson** is a computational imaging framework for **resolution enhancement in microscopy** through physics-based reconstruction methods including PSF deconvolution, multi-camera fusion, and structured illumination microscopy (SIM).
 
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue)](https://www.python.org/)

@@ -29,12 +29,18 @@ class BilateralFilter(EnhancementModule):
         if self.sigma_space <= 0:
             raise ValueError("sigma_space must be positive")
 
+        # Convert sigma_color if in 0-1 scale (convert to 0-255 scale for OpenCV)
+        if self.sigma_color < 1.0:
+            self.sigma_color = self.sigma_color * 255
+            print(
+                f"  [Bilateral] Converting sigma_color from 0-1 scale to uint8 scale: {self.sigma_color:.1f}")
+
     def apply(self, img: np.ndarray) -> np.ndarray:
         """Apply bilateral filter."""
         # Convert to uint8 for OpenCV
         img_uint8 = (img * 255).astype(np.uint8)
 
-        # Apply bilateral filter
+        # Apply bilateral filter (sigmaColor and sigmaSpace in uint8 scale)
         filtered = cv2.bilateralFilter(
             img_uint8,
             d=self.d,
@@ -66,12 +72,19 @@ class NonLocalMeans(EnhancementModule):
         if self.search_window_size % 2 == 0:
             raise ValueError("search_window_size must be odd")
 
+        # Note: h should be in range [3-15] for uint8 images (0-255 scale)
+        # If h is very small (< 1), assume user provided 0-1 scale, convert to uint8 scale
+        if self.h < 1.0:
+            self.h = self.h * 255  # Convert from 0-1 to 0-255 scale
+            print(
+                f"  [NLM] Converting h from 0-1 scale to uint8 scale: h={self.h:.1f}")
+
     def apply(self, img: np.ndarray) -> np.ndarray:
         """Apply Non-Local Means denoising."""
         # Convert to uint8
         img_uint8 = (img * 255).astype(np.uint8)
 
-        # Apply NLM denoising
+        # Apply NLM denoising (h is in uint8 scale: typically 3-15)
         if len(img.shape) == 2:
             denoised = cv2.fastNlMeansDenoising(
                 img_uint8,

@@ -1,0 +1,45 @@
+{
+  "experiment_name": "deconv_rl_custom",
+  "config_file": "configs\\deconv_rl_custom.yaml",
+  "timestamp": "2025-11-11T17:48:49.297387",
+  "total_images": 1,
+  "processing_time_seconds": 1.4561707973480225,
+  "avg_time_per_image_seconds": 1.4561707973480225,
+  "output_directory": "B:\\Academia\\Projects\\Reconstruction imaging\\data\\processed\\deconv_rl_custom",
+  "avg_sharpness_before": 0.21981032192707062,
+  "avg_sharpness_after": 0.23802416026592255,
+  "avg_sharpness_improvement": 0.01821383833885193,
+  "avg_laplacian_before": 215.05837462842464,
+  "avg_laplacian_after": 2278.1395290261135,
+  "avg_laplacian_improvement": 2063.081154397689,
+  "avg_psnr_before": 21.680299758911133,
+  "avg_psnr_after": 26.79023551940918,
+  "avg_psnr_improvement": 5.109935760498047,
+  "avg_ssim_before": 0.9866288900375366,
+  "avg_ssim_after": 0.9959003925323486,
+  "avg_ssim_improvement": 0.009271502494812012,
+  "individual_results": [
+    {
+      "image": "degraded.tif",
+      "output": "degraded_enhanced.tif",
+      "shape": [
+        512,
+        512
+      ],
+      "psnr_before": 21.680299758911133,
+      "psnr_after": 26.79023551940918,
+      "psnr_improvement": 5.109935760498047,
+      "ssim_before": 0.9866288900375366,
+      "ssim_after": 0.9959003925323486,
+      "ssim_improvement": 0.009271502494812012,
+      "mse_before": 0.006791568361222744,
+      "mse_after": 0.0020939994137734175,
+      "sharpness_before": 0.21981032192707062,
+      "sharpness_after": 0.23802416026592255,
+      "sharpness_improvement": 0.01821383833885193,
+      "laplacian_before": 215.05837462842464,
+      "laplacian_after": 2278.1395290261135,
+      "laplacian_improvement": 2063.081154397689
+    }
+  ]
+}

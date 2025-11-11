@@ -1,0 +1,32 @@
+# Richardson-Lucy Deconvolution with Airy Disk PSF
+# Test Case: star_airy (clean data)
+# Purpose: Validate performance with diffraction-limited Airy PSF model
+
+version: v1
+experiment_name: "deconv_rl_airy"
+
+enhancement:
+  modules:
+    - name: "Richardson-Lucy Deconvolution (Airy Disk PSF)"
+      type: RichardsonLucy
+      enabled: true
+      params:
+        iterations: 30
+        regularization: 0.001       # Minimal regularization for clean data
+        clip_negative: true
+        convergence_threshold: null
+        
+        # Airy disk PSF (diffraction-limited)
+        psf_method: "airy"
+        psf_params:
+          wavelength: 550           # nm (matches synthetic data generation)
+          numerical_aperture: 1.4   # High-NA (matches synthetic data generation)
+          pixel_size: 0.1           # μm (matches synthetic data generation)
+          size: 41                  # Larger kernel to capture Airy rings
+
+io:
+  input_format: auto
+  output_format: tif
+  output_bit_depth: 16
+  normalize_input: true
+  preserve_dtype: false

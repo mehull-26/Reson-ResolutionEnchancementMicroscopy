@@ -1,0 +1,43 @@
+# Richardson-Lucy Deconvolution with Known PSF
+# Test Case: checkerboard_gaussian_mild
+# Purpose: Best-case performance with known optical parameters
+
+version: v1
+experiment_name: "deconv_rl_known"
+
+enhancement:
+  modules:
+    - name: "Richardson-Lucy Deconvolution (Known Gaussian PSF)"
+      type: RichardsonLucy
+      enabled: true
+      params:
+        iterations: 100
+        regularization: 0.0
+        clip_negative: true
+        convergence_threshold: null
+        
+        # Known PSF parameters (from test case metadata)
+        psf_method: "gaussian"
+        psf_params:
+          wavelength: 550                  # nm
+          numerical_aperture: 1.0          # NA=1.0 moderate blur
+          pixel_size: 0.1                  # μm
+          size: 31                         # 31x31 kernel
+
+io:
+  input_format: auto
+  output_format: tif
+  output_bit_depth: 16
+  normalize_input: true
+  preserve_dtype: false
+
+processing:
+  convert_to_grayscale: false
+  clip_output: true
+
+metrics:
+  enabled: true
+  compute:
+    - sharpness
+    - laplacian_variance
+    - brenner_sharpness

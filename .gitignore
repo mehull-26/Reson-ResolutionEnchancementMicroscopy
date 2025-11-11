@@ -66,3 +66,17 @@ htmlcov/
 
 # Documentation
 docs/_build/
+
+# LaTeX auxiliary files
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
+*.bbl
+*.blg
+
+# Keep report directory but ignore auxiliary files
+# report/ folder is tracked with specific files

@@ -1,0 +1,33 @@
+enhancement:
+  modules:
+  - enabled: true
+    name: Richardson-Lucy Deconvolution (Known Gaussian PSF)
+    params:
+      clip_negative: true
+      convergence_threshold: null
+      iterations: 100
+      psf_method: gaussian
+      psf_params:
+        numerical_aperture: 1.0
+        pixel_size: 0.1
+        size: 31
+        wavelength: 550
+      regularization: 0.005
+    type: RichardsonLucy
+experiment_name: deconv_rl_known
+io:
+  input_format: auto
+  normalize_input: true
+  output_bit_depth: 16
+  output_format: tif
+  preserve_dtype: false
+metrics:
+  compute:
+  - sharpness
+  - laplacian_variance
+  - brenner_sharpness
+  enabled: true
+processing:
+  clip_output: true
+  convert_to_grayscale: false
+version: v1

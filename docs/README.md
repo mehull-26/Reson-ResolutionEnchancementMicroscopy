@@ -45,7 +45,7 @@ Complete documentation for **Reson** - Resolution Enhancement Microscopy Framewo
 
 6. **[Deconvolution Guide](06_Deconvolution_Guide.md)** 🆕
    - Complete deconvolution workflow
-   - 3 algorithms (Richardson-Lucy, Wiener, Total Variation)
+   - Richardson-Lucy deconvolution algorithm
    - Algorithm comparison and selection
    - Configuration examples
    - Parameter tuning strategies

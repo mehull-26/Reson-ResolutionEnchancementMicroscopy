@@ -63,7 +63,23 @@ Deconvolution algorithms need an accurate PSF to "undo" the blur:
 
 ## PSF Generation Methods
 
-Reson provides **4 methods** for obtaining PSF:
+Reson provides **4 working PSF methods** + 1 experimental:
+
+### Overview Table
+
+| Method | Type | Parameters Needed | Use Case |
+|--------|------|-------------------|----------|
+| **1. Gaussian** | Theoretical (Known) | λ, NA, pixel size | Quick approximation |
+| **2. Airy** | Theoretical (Known) | λ, NA, pixel size | Diffraction-limited |
+| **3. Gibson-Lanni** | Theoretical (Known) | λ, NA, ni, ns, ti, pixel size | Fluorescence (best) |
+| **4. Custom (Load)** | Measured (Known) | File path | Production use ✅ |
+| **5. Blind** | Estimated (Unknown) | Image only | ⚠️ Experimental |
+
+**Key Distinction:**
+- **Known PSF (Methods 1-4):** You provide optical parameters → Algorithm calculates/loads PSF
+- **Unknown PSF (Method 5):** Algorithm tries to guess PSF from blurred image alone
+
+---
 
 ### 1. Gaussian PSF (Theoretical Approximation)
 
@@ -183,9 +199,11 @@ psf = generate_gibson_lanni_psf(
 
 ---
 
-### 4. Blind PSF Estimation
+### 4. Blind PSF Estimation ⚠️ EXPERIMENTAL
 
-**Best for:** When PSF is completely unknown
+**Status:** ⚠️ **Experimental - Limited Reliability**
+
+**Best for:** Research/exploration when PSF is completely unknown
 
 ```python
 from utils.psf_generation import estimate_blind_psf
@@ -193,41 +211,44 @@ from utils.psf_generation import estimate_blind_psf
 # Estimate PSF from the blurred image itself
 psf = estimate_blind_psf(
     image=blurred_image,      # Your blurred image (0-1 range)
-    method='autocorrelation', # 'autocorrelation', 'edge_based', 'cepstrum'
-    psf_size=31
+    psf_size=31,              # Size of PSF to estimate
+    iterations=20             # Number of alternating iterations
 )
 ```
 
-**Methods:**
+**How it works:**
+- Uses iterative alternating optimization (Richardson-Lucy based)
+- Alternates between estimating image and PSF
+- Requires good initial guess and image content
 
-**a) Autocorrelation** (default)
-- Uses image autocorrelation to estimate blur
-- Good for uniform blur
-
-**b) Edge-based**
-- Extracts PSF from sharp edges in image
-- Needs images with clear edges
-
-**c) Cepstrum**
-- Frequency domain analysis
-- Can detect periodic patterns
+**⚠️ Important Limitations:**
+- **Ill-posed problem**: Single-image blind deconvolution has fundamental mathematical limitations
+- **Accuracy varies**: Typically achieves only 50-60% correlation with true PSF
+- **Image-dependent**: Success heavily depends on image content and structure
+- **Not recommended for production**: Results are often unreliable
 
 **Pros:**
-- ✅ No parameters needed
-- ✅ Works when PSF unknown
+- ✅ No optical parameters needed
 - ✅ Can adapt to actual system
+- ✅ Useful for PSF exploration/comparison
 
 **Cons:**
-- ❌ Less accurate than measured PSF
-- ❌ Ill-posed problem
-- ❌ Needs good image content
-- ❌ May not work for all images
+- ❌ **Poor accuracy** (~56% correlation with true PSF in testing)
+- ❌ Highly ill-posed problem with multiple solutions
+- ❌ Sensitive to noise and image content
+- ❌ May produce wrong PSF that makes deconvolution worse
+- ❌ Computationally expensive
 
 **When to use:**
-- PSF cannot be measured
-- Unknown optical system
-- Last resort option
-- For comparison with theoretical PSF
+- ⚠️ Only as last resort when no other option available
+- For research/comparison purposes
+- To validate theoretical PSF assumptions
+- **Not recommended for quantitative work**
+
+**Better alternatives:**
+1. **Measure PSF from beads** (best option)
+2. **Use theoretical PSF** (Gaussian/Airy/Gibson-Lanni)
+3. **Load custom PSF** from manufacturer specs
 
 ---
 
@@ -272,22 +293,31 @@ psf = load_custom_psf(
 |--------|-------|----------|------------|----------|
 | **Gaussian** | ⚡⚡⚡⚡ | ⭐⭐ | 3 | Quick test, low NA |
 | **Airy** | ⚡⚡⚡ | ⭐⭐⭐⭐ | 3 | High NA, accurate |
-| **Gibson-Lanni** | ⚡⚡ | ⭐⭐⭐⭐⭐ | 6 | Fluorescence, best |
-| **Blind** | ⚡ | ⭐⭐ | 1 | Unknown PSF |
-| **Custom (measured)** | ⚡⚡⚡⚡ | ⭐⭐⭐⭐⭐ | 1 | Production use |
+| **Gibson-Lanni** | ⚡⚡ | ⭐⭐⭐⭐⭐ | 6 | Fluorescence, best theoretical |
+| **Blind (⚠️ Experimental)** | ⚡ | ⭐ | 2 | Research only, not production |
+| **Custom (measured)** | ⚡⚡⚡⚡ | ⭐⭐⭐⭐⭐ | 1 | **Production use (best)** |
+
+**Accuracy notes:**
+- Custom (measured PSF): Best possible accuracy - reflects actual system
+- Gibson-Lanni: Best theoretical model for fluorescence
+- Airy: Accurate for diffraction-limited systems
+- Gaussian: Reasonable approximation
+- **Blind: Poor accuracy (~56% correlation), experimental only**
 
 ### Decision Tree
 
 ```
 Do you have measured PSF from beads?
-├─ YES → Use Custom PSF (best accuracy)
+├─ YES → ✅ Use Custom PSF (best accuracy - RECOMMENDED)
 └─ NO
    ├─ Fluorescence microscopy?
-   │  ├─ YES → Use Gibson-Lanni PSF
+   │  ├─ YES → Use Gibson-Lanni PSF (best theoretical model)
    │  └─ NO → Brightfield/phase contrast
    │     ├─ High NA (>0.9)? → Use Airy PSF
    │     └─ Low NA (<0.9)? → Use Gaussian PSF
-   └─ Completely unknown system? → Try Blind estimation
+   └─ Completely unknown system? 
+      → ⚠️ Try Blind estimation (experimental, limited accuracy)
+      → Better: measure PSF or use theoretical model
 ```
 
 ---
@@ -531,10 +561,10 @@ Common values:
 **Cause:** PSF might be inaccurate
 
 **Solution:**
-1. Try different PSF method (e.g., Gibson-Lanni instead of Gaussian)
-2. Measure PSF experimentally
+1. Try different theoretical PSF method (e.g., Gibson-Lanni instead of Gaussian)
+2. **Measure PSF experimentally from beads (recommended)**
 3. Check parameters are correct (especially wavelength, NA)
-4. Try blind PSF estimation to compare
+4. ⚠️ Blind PSF estimation is experimental and may not help (limited accuracy)
 
 ### Problem: "PSF looks wrong when visualized"
 
@@ -552,12 +582,22 @@ Common values:
 
 ### Problem: "Blind PSF estimation fails"
 
-**Cause:** Image content not suitable
+**⚠️ This is expected behavior - blind PSF estimation is experimental**
+
+**Why it fails:**
+- Single-image blind deconvolution is fundamentally ill-posed
+- Multiple PSF/image pairs can produce the same blurred result
+- Typically achieves only 50-60% correlation with true PSF
+- Highly dependent on image content
 
 **Solution:**
-- Blind estimation needs good edges/features
-- Try different method: 'autocorrelation', 'edge_based', 'cepstrum'
-- Fall back to theoretical PSF (Gaussian/Airy)
+1. ✅ **Measure PSF from fluorescent beads** (best option)
+2. ✅ Use theoretical PSF (Gaussian, Airy, Gibson-Lanni)
+3. ✅ Load custom PSF from manufacturer specs
+4. ⚠️ Accept that blind estimation has limited accuracy
+5. Use blind results only for research/exploration, not production
+
+**Note:** Blind PSF estimation is marked as experimental for a reason - it's unreliable for quantitative work.
 
 ### Problem: "Custom PSF file not loading"
 
@@ -573,12 +613,13 @@ Common values:
 ## Best Practices
 
 ### ✅ DO:
-- Use measured PSF for quantitative work
+- **Use measured PSF for quantitative work** (best practice)
 - Check PSF visualization before using
 - Use emission wavelength for fluorescence
 - Ensure Nyquist sampling (pixel size ≤ λ/(4×NA))
 - Average multiple beads when measuring PSF
 - Save PSF in multiple formats (.npy and .tif)
+- Verify deconvolution results with metrics (PSNR, SSIM)
 
 ### ❌ DON'T:
 - Use excitation wavelength (use emission!)
@@ -586,6 +627,8 @@ Common values:
 - Use even-sized PSF (always odd: 21, 31, 41...)
 - Measure PSF with overexposed beads
 - Use PSF from different microscope/settings
+- **Rely on blind PSF estimation for production/quantitative work**
+- Assume blind estimation will work reliably
 
 ---
 

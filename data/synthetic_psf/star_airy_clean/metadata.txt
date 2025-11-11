@@ -1,0 +1,4 @@
+Pattern: star
+PSF: airy
+PSF params: {'wavelength': 550, 'numerical_aperture': 1.4, 'pixel_size': 0.1, 'size': 41}
+Image size: (512, 512)

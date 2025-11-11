@@ -1,0 +1,4 @@
+Pattern: fluorescent_beads
+PSF: gibson_lanni
+PSF params: {'wavelength': 550, 'numerical_aperture': 1.4, 'pixel_size': 0.1, 'size': 41, 'ni': 1.518, 'ns': 1.33, 'ti': 150}
+Image size: (512, 512)

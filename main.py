@@ -89,6 +89,10 @@ def get_image_files(directory):
         if ext != ext.upper():
             image_files.extend(directory.glob(f"*{ext.upper()}"))
 
+    # Remove ground truth and PSF files (those are references, not inputs to enhance)
+    image_files = [f for f in image_files if f.stem not in [
+        'ground_truth', 'psf']]
+
     # Remove duplicates and sort
     return sorted(list(set(image_files)))
 
@@ -98,9 +102,20 @@ def find_ground_truth(image_path, ground_truth_dir):
     if ground_truth_dir is None:
         return None
 
-    ground_truth_dir = Path(ground_truth_dir)
-    if not ground_truth_dir.exists():
+    ground_truth_path = Path(ground_truth_dir)
+    if not ground_truth_path.exists():
         return None
+
+    # If ground_truth_dir is actually a file, return it directly
+    if ground_truth_path.is_file():
+        return ground_truth_path
+
+    # Otherwise, it's a directory - search for matching ground truth
+    # First try to find ground_truth.tif/ground_truth.tiff explicitly
+    for ext in ['.tif', '.tiff', '.png']:
+        gt_path = ground_truth_path / f"ground_truth{ext}"
+        if gt_path.exists():
+            return gt_path
 
     # Try to find matching ground truth
     # Remove common suffixes like _degraded, _blurred, _noisy, etc.
@@ -110,7 +125,7 @@ def find_ground_truth(image_path, ground_truth_dir):
 
     # Try different extensions
     for ext in SUPPORTED_FORMATS:
-        gt_path = ground_truth_dir / f"{stem}{ext}"
+        gt_path = ground_truth_path / f"{stem}{ext}"
         if gt_path.exists():
             return gt_path
 
@@ -229,26 +244,21 @@ def process_images(input_path, config_path, ground_truth_dir=None, visualize=Fal
             if verbose:
                 print(f"  Saved: {output_path.name}")
 
-            # Compute metrics
+            # Basic metrics
             result = {
                 'image': img_path.name,
                 'output': output_path.name,
-                'shape': list(img.shape),
-                'sharpness_after': gradient_sharpness(enhanced),
-                'laplacian_after': laplacian_variance(enhanced),
+                'shape': list(enhanced.shape),
             }
-
-            # Get pipeline metrics
-            pipeline_metrics = pipeline.get_metrics()
-            result.update(pipeline_metrics)
 
             # Evaluate against ground truth if available
             gt_path = find_ground_truth(img_path, ground_truth_dir)
-            if gt_path and verbose:
-                print(f"  Ground truth: {gt_path.name}")
+            if gt_path:
+                if verbose:
+                    print(f"  Ground truth: {gt_path.name}")
                 gt_img = load_image(gt_path, as_float=True)
 
-                # Compute quality metrics
+                # Compute ALL quality metrics with ground truth
                 result['psnr_before'] = psnr(gt_img, img)
                 result['psnr_after'] = psnr(gt_img, enhanced)
                 result['psnr_improvement'] = result['psnr_after'] - \
@@ -263,33 +273,49 @@ def process_images(input_path, config_path, ground_truth_dir=None, visualize=Fal
                 result['mse_after'] = mse(gt_img, enhanced)
 
                 result['sharpness_before'] = gradient_sharpness(img)
+                result['sharpness_after'] = gradient_sharpness(enhanced)
+                result['sharpness_improvement'] = result['sharpness_after'] - \
+                    result['sharpness_before']
 
-                # Print evaluation
-                print(f"\n  Evaluation vs Ground Truth:")
-                print(
-                    f"    PSNR:      {result['psnr_before']:6.2f} → {result['psnr_after']:6.2f} dB  (Δ {result['psnr_improvement']:+.2f})")
-                print(
-                    f"    SSIM:      {result['ssim_before']:6.4f} → {result['ssim_after']:6.4f}  (Δ {result['ssim_improvement']:+.4f})")
-                print(
-                    f"    Sharpness: {result['sharpness_before']:6.4f} → {result['sharpness_after']:6.4f}")
-            elif gt_path and not verbose:
-                # Still compute metrics, just don't print
-                gt_img = load_image(gt_path, as_float=True)
-                result['psnr_before'] = psnr(gt_img, img)
-                result['psnr_after'] = psnr(gt_img, enhanced)
-                result['psnr_improvement'] = result['psnr_after'] - \
-                    result['psnr_before']
-                result['ssim_before'] = ssim(gt_img, img)
-                result['ssim_after'] = ssim(gt_img, enhanced)
-                result['ssim_improvement'] = result['ssim_after'] - \
-                    result['ssim_before']
-                result['mse_before'] = mse(gt_img, img)
-                result['mse_after'] = mse(gt_img, enhanced)
+                result['laplacian_before'] = laplacian_variance(img)
+                result['laplacian_after'] = laplacian_variance(enhanced)
+                result['laplacian_improvement'] = result['laplacian_after'] - \
+                    result['laplacian_before']
+
+                if verbose:
+                    print(f"\n  Evaluation vs Ground Truth:")
+                    print(
+                        f"    PSNR:      {result['psnr_before']:6.2f} → {result['psnr_after']:6.2f} dB  (Δ {result['psnr_improvement']:+.2f})")
+                    print(
+                        f"    SSIM:      {result['ssim_before']:6.4f} → {result['ssim_after']:6.4f}  (Δ {result['ssim_improvement']:+.4f})")
+                    print(
+                        f"    Sharpness: {result['sharpness_before']:6.4f} → {result['sharpness_after']:6.4f}  (Δ {result['sharpness_improvement']:+.4f})")
+                    print(
+                        f"    Laplacian: {result['laplacian_before']:6.2f} → {result['laplacian_after']:6.2f}  (Δ {result['laplacian_improvement']:+.2f})")
+            else:
+                # No ground truth - use pipeline metrics for sharpness/laplacian
+                pipeline_metrics = pipeline.get_metrics()
+                result.update(pipeline_metrics)
+
+                # Also compute before metrics
                 result['sharpness_before'] = gradient_sharpness(img)
-            elif verbose:
-                print(f"\n  Quality Metrics:")
-                print(f"    Sharpness:  {result['sharpness_after']:.4f}")
-                print(f"    Laplacian:  {result['laplacian_after']:.4f}")
+                result['sharpness_after'] = result.get(
+                    'sharpness', gradient_sharpness(enhanced))
+                result['sharpness_improvement'] = result['sharpness_after'] - \
+                    result['sharpness_before']
+
+                result['laplacian_before'] = laplacian_variance(img)
+                result['laplacian_after'] = result.get(
+                    'laplacian_variance', laplacian_variance(enhanced))
+                result['laplacian_improvement'] = result['laplacian_after'] - \
+                    result['laplacian_before']
+
+                if verbose:
+                    print(f"\n  Quality Metrics:")
+                    print(
+                        f"    Sharpness:  {result['sharpness_before']:.4f} → {result['sharpness_after']:.4f}  (Δ {result['sharpness_improvement']:+.4f})")
+                    print(
+                        f"    Laplacian:  {result['laplacian_before']:.2f} → {result['laplacian_after']:.2f}  (Δ {result['laplacian_improvement']:+.2f})")
 
             # Save individual result
             result_file = results_dir / f"{img_path.stem}_result.json"
@@ -329,15 +355,34 @@ def process_images(input_path, config_path, ground_truth_dir=None, visualize=Fal
             print("="*70)
 
         # Compute averages
+        elapsed = time.time() - start_time
+
         report = {
             'experiment_name': experiment_name,
             'config_file': str(config_path),
             'timestamp': datetime.now().isoformat(),
             'total_images': len(all_results),
+            'processing_time_seconds': elapsed,
+            'avg_time_per_image_seconds': elapsed / len(all_results),
             'output_directory': str(output_dir),
         }
 
         # Average metrics
+        # Always include sharpness and laplacian
+        report['avg_sharpness_before'] = np.mean(
+            [r['sharpness_before'] for r in all_results])
+        report['avg_sharpness_after'] = np.mean(
+            [r['sharpness_after'] for r in all_results])
+        report['avg_sharpness_improvement'] = np.mean(
+            [r['sharpness_improvement'] for r in all_results])
+
+        report['avg_laplacian_before'] = np.mean(
+            [r['laplacian_before'] for r in all_results])
+        report['avg_laplacian_after'] = np.mean(
+            [r['laplacian_after'] for r in all_results])
+        report['avg_laplacian_improvement'] = np.mean(
+            [r['laplacian_improvement'] for r in all_results])
+
         if 'psnr_improvement' in all_results[0]:
             # Has ground truth evaluation
             report['avg_psnr_before'] = np.mean(
@@ -354,32 +399,31 @@ def process_images(input_path, config_path, ground_truth_dir=None, visualize=Fal
             report['avg_ssim_improvement'] = np.mean(
                 [r['ssim_improvement'] for r in all_results])
 
-            report['avg_sharpness_before'] = np.mean(
-                [r['sharpness_before'] for r in all_results])
-            report['avg_sharpness_after'] = np.mean(
-                [r['sharpness_after'] for r in all_results])
-
             if verbose:
                 print(f"\nWith Ground Truth Evaluation:")
                 print(
-                    f"  Average PSNR Improvement:  {report['avg_psnr_improvement']:+.2f} dB")
+                    f"  Average PSNR Improvement:      {report['avg_psnr_improvement']:+.2f} dB")
                 print(
-                    f"  Average SSIM Improvement:  {report['avg_ssim_improvement']:+.4f}")
+                    f"  Average SSIM Improvement:      {report['avg_ssim_improvement']:+.4f}")
                 print(
-                    f"  Final Average PSNR:        {report['avg_psnr_after']:.2f} dB")
+                    f"  Average Sharpness Improvement: {report['avg_sharpness_improvement']:+.4f}")
                 print(
-                    f"  Final Average SSIM:        {report['avg_ssim_after']:.4f}")
+                    f"  Average Laplacian Improvement: {report['avg_laplacian_improvement']:+.2f}")
+                print(
+                    f"  Final Average PSNR:            {report['avg_psnr_after']:.2f} dB")
+                print(
+                    f"  Final Average SSIM:            {report['avg_ssim_after']:.4f}")
         else:
-            # No ground truth
-            report['avg_sharpness'] = np.mean(
-                [r['sharpness_after'] for r in all_results])
-            report['avg_laplacian'] = np.mean(
-                [r['laplacian_after'] for r in all_results])
-
             if verbose:
                 print(f"\nQuality Metrics:")
-                print(f"  Average Sharpness:  {report['avg_sharpness']:.4f}")
-                print(f"  Average Laplacian:  {report['avg_laplacian']:.4f}")
+                print(
+                    f"  Average Sharpness Improvement: {report['avg_sharpness_improvement']:+.4f}")
+                print(
+                    f"  Average Laplacian Improvement: {report['avg_laplacian_improvement']:+.2f}")
+                print(
+                    f"  Final Average Sharpness:       {report['avg_sharpness_after']:.4f}")
+                print(
+                    f"  Final Average Laplacian:       {report['avg_laplacian_after']:.4f}")
 
         # Save overall report
         report['individual_results'] = all_results

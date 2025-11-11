@@ -1,0 +1,45 @@
+{
+  "experiment_name": "deconv_rl_airy",
+  "config_file": "configs\\deconv_rl_airy.yaml",
+  "timestamp": "2025-11-11T17:49:02.385014",
+  "total_images": 1,
+  "processing_time_seconds": 12.00034499168396,
+  "avg_time_per_image_seconds": 12.00034499168396,
+  "output_directory": "B:\\Academia\\Projects\\Reconstruction imaging\\data\\processed\\deconv_rl_airy",
+  "avg_sharpness_before": 0.19956336915493011,
+  "avg_sharpness_after": 0.22093184292316437,
+  "avg_sharpness_improvement": 0.021368473768234253,
+  "avg_laplacian_before": 345.608781501418,
+  "avg_laplacian_after": 2849.5918329916312,
+  "avg_laplacian_improvement": 2503.9830514902133,
+  "avg_psnr_before": 22.40704345703125,
+  "avg_psnr_after": 29.589771270751953,
+  "avg_psnr_improvement": 7.182727813720703,
+  "avg_ssim_before": 0.9693569540977478,
+  "avg_ssim_after": 0.9939238429069519,
+  "avg_ssim_improvement": 0.0245668888092041,
+  "individual_results": [
+    {
+      "image": "degraded.tif",
+      "output": "degraded_enhanced.tif",
+      "shape": [
+        512,
+        512
+      ],
+      "psnr_before": 22.40704345703125,
+      "psnr_after": 29.589771270751953,
+      "psnr_improvement": 7.182727813720703,
+      "ssim_before": 0.9693569540977478,
+      "ssim_after": 0.9939238429069519,
+      "ssim_improvement": 0.0245668888092041,
+      "mse_before": 0.005745074711740017,
+      "mse_after": 0.0010990635491907597,
+      "sharpness_before": 0.19956336915493011,
+      "sharpness_after": 0.22093184292316437,
+      "sharpness_improvement": 0.021368473768234253,
+      "laplacian_before": 345.608781501418,
+      "laplacian_after": 2849.5918329916312,
+      "laplacian_improvement": 2503.9830514902133
+    }
+  ]
+}

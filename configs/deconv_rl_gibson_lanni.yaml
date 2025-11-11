@@ -1,0 +1,35 @@
+# Richardson-Lucy Deconvolution with Gibson-Lanni PSF
+# Test Case: fluorescent_beads_fluorescence_poisson5
+# Purpose: Validate with high-NA vectorial PSF model on realistic Poisson noise
+
+version: v1
+experiment_name: "deconv_rl_gibson_lanni"
+
+enhancement:
+  modules:
+    - name: "Richardson-Lucy Deconvolution (Gibson-Lanni PSF)"
+      type: RichardsonLucy
+      enabled: true
+      params:
+        iterations: 30
+        regularization: 0.001
+        clip_negative: true
+        convergence_threshold: null
+        
+        # Gibson-Lanni PSF (high-NA, vectorial model)
+        psf_method: "gibson_lanni"
+        psf_params:
+          numerical_aperture: 1.4   # High-NA oil immersion
+          wavelength: 550           # nm (matches synthetic data generation)
+          pixel_size: 0.1           # μm (matches synthetic data generation)
+          size: 41                  # Larger kernel to capture aberrations
+          ni: 1.518                 # Refractive index of immersion (oil)
+          ns: 1.33                  # Refractive index of sample (aqueous)
+          ti: 150                   # Working distance (μm)
+
+io:
+  input_format: auto
+  output_format: tif
+  output_bit_depth: 16
+  normalize_input: true
+  preserve_dtype: false

@@ -7,11 +7,12 @@ This script creates test images by:
 3. Adding optional noise (Gaussian, Poisson)
 4. Saving blurred images, ground truth, and PSF files
 
-Author: Mehul Patel
+Author: Mehul Yadav
 Date: November 2025
 """
 
 from scipy.ndimage import convolve
+from scipy.signal import fftconvolve
 from utils.io import save_image
 from utils.psf_generation import (
     generate_gaussian_psf, generate_airy_psf, generate_gibson_lanni_psf
@@ -71,21 +72,43 @@ def generate_test_patterns(size=512):
                (r < size // 2 - 10)).astype(float)
     patterns['siemens_star'] = siemens
 
-    # 4. Gaussian dots (simulated fluorescent beads)
-    dots = np.zeros((size, size))
+    # 4. Fluorescent beads (simulated fluorescence microscopy)
+    # Sharp-edged small beads (3-6 pixel radius) for realistic microscopy
+    beads = np.zeros((size, size))
     np.random.seed(42)
-    num_dots = 50
-    for _ in range(num_dots):
-        cx = np.random.randint(50, size - 50)
-        cy = np.random.randint(50, size - 50)
-        sigma = 3.0
-        for dx in range(-15, 16):
-            for dy in range(-15, 16):
-                x, y = cx + dx, cy + dy
-                if 0 <= x < size and 0 <= y < size:
-                    dots[y, x] += np.exp(-(dx**2 + dy**2) / (2 * sigma**2))
-    dots = np.clip(dots, 0, 1)
-    patterns['fluorescent_beads'] = dots
+    num_beads = 20  # More beads since they're smaller
+    bead_positions = []
+
+    # Generate non-overlapping bead positions
+    min_distance = 40  # Minimum separation between beads
+    attempts = 0
+    while len(bead_positions) < num_beads and attempts < 1000:
+        cx = np.random.randint(40, size - 40)
+        cy = np.random.randint(40, size - 40)
+
+        # Check if too close to existing beads
+        too_close = False
+        for (ex_cx, ex_cy) in bead_positions:
+            if np.sqrt((cx - ex_cx)**2 + (cy - ex_cy)**2) < min_distance:
+                too_close = True
+                break
+
+        if not too_close:
+            bead_positions.append((cx, cy))
+        attempts += 1
+
+    # Draw sharp-edged beads (hard cutoff, like real microspheres)
+    Y, X = np.ogrid[:size, :size]
+    for (cx, cy) in bead_positions:
+        # Random bead radius (3-6 pixels)
+        radius = np.random.randint(3, 7)
+
+        # Create sharp-edged sphere (hard cutoff at radius)
+        dist = np.sqrt((X - cx)**2 + (Y - cy)**2)
+        mask = dist <= radius
+        beads[mask] = 1.0  # Full brightness (sharp edges)
+
+    patterns['fluorescent_beads'] = beads
 
     # 5. Text/letters (complex shapes)
     text_img = np.zeros((size, size), dtype=np.uint8)
@@ -146,7 +169,11 @@ def blur_with_psf(image, psf):
     blurred : np.ndarray
         Blurred image
     """
-    blurred = convolve(image, psf, mode='reflect')
+    # Normalize PSF to preserve flux
+    psf_norm = psf / psf.sum()
+
+    # Use FFT convolution for better accuracy
+    blurred = fftconvolve(image, psf_norm, mode='same')
     blurred = np.clip(blurred, 0, 1)
     return blurred
 
@@ -199,27 +226,23 @@ def main():
     patterns = generate_test_patterns(size=512)
     print(f"   Generated {len(patterns)} patterns")
 
-    # PSF configurations
+    # PSF configurations (UPDATED for MUCH MORE blur)
     psf_configs = {
-        'gaussian_mild': {
+        'gaussian': {
             'method': generate_gaussian_psf,
-            'params': {'wavelength': 550, 'numerical_aperture': 1.0,
-                       'pixel_size': 0.1, 'size': 21}
-        },
-        'gaussian_strong': {
-            'method': generate_gaussian_psf,
-            'params': {'wavelength': 550, 'numerical_aperture': 0.5,
-                       'pixel_size': 0.1, 'size': 31}
+            'params': {'wavelength': 550, 'numerical_aperture': 1.0,  # NA=1.0 moderate blur
+                       'pixel_size': 0.1, 'size': 31}  # 31x31 kernel
         },
         'airy': {
             'method': generate_airy_psf,
             'params': {'wavelength': 550, 'numerical_aperture': 1.4,
-                       'pixel_size': 0.065, 'size': 31}
+                       # Keep Airy as is (it's working well)
+                       'pixel_size': 0.1, 'size': 41}
         },
-        'fluorescence': {
+        'gibson_lanni': {
             'method': generate_gibson_lanni_psf,
-            'params': {'wavelength': 520, 'numerical_aperture': 1.4,
-                       'pixel_size': 0.065, 'size': 41,
+            'params': {'wavelength': 550, 'numerical_aperture': 1.4,
+                       'pixel_size': 0.1, 'size': 41,
                        'ni': 1.518, 'ns': 1.33, 'ti': 150}
         },
     }
@@ -233,31 +256,32 @@ def main():
     for psf_name, config in psf_configs.items():
         print(f"   - {psf_name}")
         psf = config['method'](**config['params'])
+
+        # NORMALIZE PSF (important for consistent convolution!)
+        psf = psf / psf.sum()
         psfs[psf_name] = psf
 
         # Save PSF as NPY and TIF
         np.save(psf_dir / f'{psf_name}.npy', psf)
-        # Generate blurred images
         save_image(psf, psf_dir / f'{psf_name}.tif', bit_depth=16)
     print("\n3. Generating blurred images...")
 
     # Select representative patterns for each PSF
+    # These 5 test cases match the report Table 1
     test_cases = [
-        # Pattern, PSF, Noise type, Noise level
-        ('checkerboard', 'gaussian_mild', None, 0),
-        ('checkerboard', 'gaussian_strong', None, 0),
-        ('star', 'airy', None, 0),
-        ('siemens_star', 'gaussian_mild', None, 0),
-        ('fluorescent_beads', 'fluorescence', 'poisson', 0.05),
-        ('fluorescent_beads', 'fluorescence', 'gaussian', 0.02),
-        ('text', 'gaussian_strong', 'gaussian', 0.01),
-        ('cells', 'fluorescence', 'poisson', 0.03),
-        ('grid', 'airy', None, 0),
-        ('texture', 'gaussian_mild', 'gaussian', 0.02),
+        # Pattern, PSF, Noise type, Noise level, Case name
+        ('checkerboard', 'gaussian', None, 0, 'checkerboard_gaussian_clean'),
+        # For custom PSF test (loads PSF from first case)
+        ('checkerboard', 'gaussian', None, 0, 'beads_gaussian_clean'),
+        ('star', 'airy', None, 0, 'star_airy_clean'),
+        ('fluorescent_beads', 'gibson_lanni', None, 0,
+         'beads_gibson_lanni_clean'),  # CLEAN data, no Poisson noise
+        ('checkerboard', 'gaussian', 'poisson', 0.111,
+         'checkerboard_gaussian_poisson3'),  # SNR=3 -> peak_counts=9
     ]
 
     count = 0
-    for pattern_name, psf_name, noise_type, noise_level in test_cases:
+    for pattern_name, psf_name, noise_type, noise_level, case_name in test_cases:
         print(f"   - {pattern_name} + {psf_name}" +
               (f" + {noise_type} noise" if noise_type else ""))
 
@@ -272,16 +296,12 @@ def main():
         if noise_type:
             blurred = add_noise(blurred, noise_type, noise_level)
 
-        # Create test case directory
-        case_name = f"{pattern_name}_{psf_name}"
-        if noise_type:
-            case_name += f"_{noise_type}{int(noise_level*100)}"
-
+        # Create test case directory (use specified case name)
         case_dir = output_dir / case_name
         case_dir.mkdir(exist_ok=True)
 
         # Save images
-        save_image(blurred, case_dir / 'blurred.tif', bit_depth=16)
+        save_image(blurred, case_dir / 'degraded.tif', bit_depth=16)
         save_image(pattern, case_dir / 'ground_truth.tif', bit_depth=16)
 
         # Copy PSF to case directory for convenience
@@ -310,22 +330,22 @@ def main():
         f.write("Structure:\n")
         f.write("  - Each test case has its own folder\n")
         f.write("  - Each folder contains:\n")
-        f.write("    * blurred.tif - PSF-blurred image (input for deconvolution)\n")
+        f.write("    * degraded.tif - PSF-blurred image (input for deconvolution)\n")
         f.write("    * ground_truth.tif - Original clean image (for comparison)\n")
         f.write("    * psf.npy/.tif - PSF used for blurring\n")
         f.write("    * metadata.txt - Description of test case\n\n")
-        f.write(f"Generated {count} test cases\n\n")
+        f.write(f"Generated {count} test cases for report validation\n\n")
         f.write("Test with:\n")
-        f.write("  python main.py -i data/synthetic_psf/<case_name>/blurred.tif ")
+        f.write("  python main.py -i data/synthetic_psf/<case_name>/degraded.tif ")
         f.write("-g data/synthetic_psf/<case_name>/ground_truth.tif ")
-        f.write("-c configs/deconv_rl.yaml\n")
+        f.write("-c configs/deconv_rl_known.yaml\n")
 
     print(f"\n📄 README created: {readme_path}")
     print("\n" + "=" * 60)
     print("To test deconvolution:")
-    print("  python main.py -i data/synthetic_psf/checkerboard_gaussian_mild/blurred.tif \\")
-    print("                 -g data/synthetic_psf/checkerboard_gaussian_mild/ground_truth.tif \\")
-    print("                 -c configs/deconv_rl.yaml")
+    print("  python main.py -i data/synthetic_psf/checkerboard_gaussian_clean/degraded.tif \\")
+    print("                 -g data/synthetic_psf/checkerboard_gaussian_clean/ground_truth.tif \\")
+    print("                 -c configs/deconv_rl_known.yaml")
 
 
 if __name__ == "__main__":

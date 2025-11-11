@@ -573,44 +573,6 @@ Don't hesitate to:
 
 ---
 
-## Development Roadmap
-
-### v0 (Current) - Spatial Enhancement ✅
-- [x] Bilateral filtering
-- [x] Non-local means
-- [x] Unsharp masking
-- [x] Multiple algorithms
-- [x] YAML configuration
-- [x] Comprehensive documentation
-
-### v1 (Planned) - Frequency Domain
-- [ ] PSF handling
-- [ ] Wiener deconvolution
-- [ ] Richardson-Lucy algorithm
-- [ ] Blind deconvolution
-- [ ] PSF estimation tools
-
-### v2 (Planned) - Multi-Frame
-- [ ] Multi-camera fusion
-- [ ] Temporal denoising
-- [ ] Frame registration
-- [ ] Super-resolution
-
-### v3 (Future) - Advanced
-- [ ] SIM reconstruction
-- [ ] Deep learning models
-- [ ] GPU acceleration
-- [ ] Real-time processing
-
-### Ongoing
-- [ ] Unit tests
-- [ ] CI/CD pipeline
-- [ ] Performance optimization
-- [ ] More documentation
-- [ ] Example gallery
-
----
-
 ## Getting Started with Contributing
 
 **First-time contributors:**

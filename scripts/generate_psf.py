@@ -8,7 +8,7 @@ Usage:
   python scripts/generate_psf.py --method gibson_lanni --wavelength 520 --na 1.4
   python scripts/generate_psf.py --load measured_psf.tif --visualize
 
-Author: Mehul Patel
+Author: Mehul Yadav
 Date: November 2025
 """
 

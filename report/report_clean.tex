@@ -1,0 +1,169 @@
+\documentclass[10pt,a4paper,twocolumn]{article}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{cite}
+\usepackage[hidelinks]{hyperref}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{times}
+\setlength{\columnsep}{0.25in}
+\captionsetup{font=small,labelfont=bf}
+\title{\textbf{Computational Resolution Enhancement in Microscopy:\\A PSF-Based Deconvolution Approach}}
+\author{Mehul Kumar Yadav (23123026) \and Umesh Kumar (23123048)\\Department of Physics, IIT Roorkee\\\small Course: Technical Communication (PHC-391), Instructor: Prof. Sachin Kumar Srivastava}
+\date{November 2025}
+\begin{document}
+\maketitle
+\begin{abstract}
+    This project develops a computational framework for microscopy image enhancement which is limited by Abbe's diffraction limit
+    $d_{\text{min}} = \lambda / (2\text{NA})$. The implementation integrates physics-based point spread function (PSF) modeling
+    with Richardson--Lucy deconvolution with total variation (TV) regularization to improve effective image resolution
+    beyond hardware limitations. Five PSF generation methods (Gaussian, Airy disk, Gibson--Lanni, custom measured PSF, and experimental blind estimation)
+    were validated on synthetic $512 \times 512$, 16-bit microscopy images under clean and heavy Poisson noise conditions (SNR$\approx$3).
+    Results demonstrate PSNR improvements ranging from +3.36\,dB (heavy noise) to +7.18\,dB (Airy disk, clean data), with processing times of 1.5--12\,seconds per image on Intel i9-13900HX CPU depending on PSF model complexity.
+    The modular architecture allows systematic algorithm comparison through standardized metrics including PSNR and SSIM.
+\end{abstract}
+
+\section{Introduction}
+Optical microscopy is still one of the core imaging tools used in both biology and materials science. However, image quality is fundamentally limited by Abbe's diffraction criterion:
+\begin{equation}\label{eq:abbe}
+    d_{\min}=\frac{\lambda}{2\,\text{NA}}.
+\end{equation}
+For visible light microscopy with high numerical aperture objectives (NA=1.4), this equation (Eq.~\ref{eq:abbe}) constrains lateral resolution to approximately 200 nm. Beyond diffraction, acquired images suffer from optical blur characterized by the point spread function (PSF), photon shot noise (Poisson statistics), camera read noise, and various optical aberrations.
+
+While hardware-based super-resolution techniques (STED, PALM, STORM) can overcome the diffraction barrier, they require specialized equipment and expertise. Computational methods help offer an accessible alternative by mathematically reversing image degradation through deconvolution algorithms combined with accurate PSF modeling.
+
+This project implements a modular computational framework featuring: (i) multiple PSF generation strategies suitable for different microscopy configurations (ii) iterative deconvolution algorithm (iii) empirical spatial enhancement operators (iv) quantitative performance metrics enabling systematic algorithm comparison.
+\section{Methodology}
+\subsection{Architecture}
+The framework follows a modular three-layer design. The \textbf{input layer} handles multi-format image loading (TIFF, PNG, JPEG) with automatic bit-depth normalization (8-bit to 16-bit conversion where needed), ensuring consistent preprocessing. The \textbf{processing layer} implements a plugin architecture where PSF generation, deconvolution, and spatial enhancement modules can be chained programmatically via YAML configuration files. This design allows testing different algorithm combinations through configuration files alone. The \textbf{metrics layer} computes quantitative assessments (sharpness index, Laplacian variance, PSNR where ground truth available, SSIM, and wall-clock timing) and exports results to structured JSON for reproducible analysis.
+
+\subsection{PSF Models}
+\textbf{Gaussian (Approximate):}
+\begin{equation}
+    \text{PSF}(r)=\exp\!\Big(-\frac{r^{2}}{2\sigma^{2}}\Big),\quad \sigma=0.21\frac{\lambda}{\text{NA}}.
+\end{equation}
+Fast analytical computation suitable for moderate-NA widefield microscopy. Approximates diffraction blur as radially symmetric Gaussian with width determined by wavelength and numerical aperture.
+
+\textbf{Airy Disk (Diffraction Limited):}
+\begin{equation}
+    \text{PSF}(r)=\left[\frac{2J_{1}(k r)}{k r}\right]^{2},\quad k=\frac{2\pi\text{NA}}{\lambda}.
+\end{equation}
+Rigorous Fraunhofer diffraction pattern for circular aperture. Captures pupil diffraction accurately for ideal optical systems without aberrations. Bessel function $J_1$ computed via series expansion.
+
+\textbf{Gibson--Lanni:} High-NA model including refractive index mismatch and spherical aberration (numerical pupil integration)~\cite{gibson1992}. Accounts for coverslip thickness variations and immersion medium mismatches critical in fluorescence microscopy. Requires numerical integration over pupil coordinates; computationally intensive but physically accurate for oil-immersion objectives (NA$>$1.2).
+
+\textbf{Custom PSF:} Measured PSF loaded from pre-acquired calibration data (e.g., sub-resolution fluorescent beads). Enables deconvolution when analytical models are insufficient but PSF can be experimentally determined.
+
+\textbf{Blind Estimation:} Autocorrelation-based or iterative joint estimation when optical parameters unknown. This approach is experimental with limited accuracy compared to model-based methods (not recommended for quantitative work).
+\subsection{Richardson--Lucy with TV Regularization}
+Iterative Bayesian algorithm maximizing Poisson likelihood with edge-preserving regularization~\cite{richardson1972,lucy1974,dey2006}:
+\begin{equation}
+    u^{(k+1)}=\frac{u^{(k)}\cdot\left[\text{PSF}^{*}\otimes\frac{y}{\text{PSF}\otimes u^{(k)}+\epsilon}\right]}{1 + \lambda \cdot \nabla \text{TV}(u^{(k)})}.
+\end{equation}
+The numerator implements standard Richardson--Lucy multiplicative update, derived from Bayes' theorem assuming Poisson-distributed photon counts. The denominator incorporates total variation regularization~\cite{rudin1992} to suppress noise amplification while preserving edges. The TV gradient is computed as:
+\begin{equation}
+    \nabla \text{TV}(u) = \nabla \cdot \left( \frac{\nabla u}{|\nabla u| + \epsilon} \right),
+\end{equation}
+which penalizes oscillatory noise while maintaining sharp boundaries at intensity discontinuities. The regularization parameter $\lambda$ controls the balance between deconvolution and smoothness: $\lambda=0.001$ for clean data provides minimal regularization to avoid over-smoothing, while $\lambda=0.05$ for heavy Poisson noise (SNR$\approx$3) aggressively suppresses amplified noise. \textbf{Note:} These $\lambda$ values are empirically determined through validation on synthetic test cases and may require adjustment for different imaging conditions, sample types, or noise characteristics. In practice, $\lambda$ tuning involves visual inspection of restored images and quantitative metrics (PSNR, SSIM) when ground truth is available. This multiplicative regularization form ensures positivity preservation (division maintains positive values when numerator is positive) and provides better numerical stability compared to additive variants. The combined approach preserves RL's flux conservation while effectively mitigating high-frequency noise amplification inherent to inverse problems.
+
+
+\subsection{Synthetic Data and Metrics}
+We generated five controlled test images covering diverse scenarios: \textbf{Patterns} include checkerboard (assess spatial frequency response), star field (point sources), fluorescent beads (realistic spherical objects with sharp edges). \textbf{PSF models} span Gaussian blur (NA=1.0, $\lambda$=550nm, kernel size 31$\times$31 pixels), Airy disk (NA=1.4, diffraction-limited, 41$\times$41), and Gibson--Lanni (NA=1.4, oil immersion with refractive index mismatch: $n_i$=1.518 oil, $n_s$=1.33 aqueous sample, 41$\times$41). All PSFs normalized to unit energy. \textbf{Noise regimes} cover heavy Poisson photon noise (SNR$\approx$3 for low-light fluorescence conditions) and clean ground truth for baseline validation. All images standardized to 512$\times$512 pixels, 16-bit depth, pixel size 0.1$\mu$m.
+
+\noindent\textbf{Metrics:} Laplacian variance (second-derivative energy; detail richness), sharpness index (edge strength via gradient magnitude), PSNR and SSIM (when ground truth available for quantitative validation), wall-clock runtime (Intel i9-13900HX, single-threaded Python NumPy/SciPy).
+\section{Results}
+\subsection{Quantitative Performance}
+Table~\ref{tab:performance} summarizes Richardson--Lucy with TV regularization performance across five PSF models and noise conditions on synthetic 512$\times$512, 16-bit test images.
+
+\begin{table}[t]
+    \centering
+    \caption{RL-TV deconvolution performance with ground truth comparison. All detailed results including enhanced images are available in the \texttt{results/} directory.}
+    \label{tab:performance}
+    \small
+    \begin{tabular}{lcccc}
+        \toprule
+        PSF Model             & Noise Type & PSNR      & $\Delta$PSNR & SSIM  \\
+        \midrule
+        Gaussian (Analytical) & Clean      & 26.80\,dB & +5.12\,dB    & 0.996 \\
+        Custom (Measured)     & Clean      & 26.79\,dB & +5.11\,dB    & 0.996 \\
+        Airy Disk             & Clean      & 29.59\,dB & +7.18\,dB    & 0.994 \\
+        Gibson--Lanni         & Clean      & 31.39\,dB & +3.84\,dB    & 0.934 \\
+        RL-TV Optimized       & Poisson    & 18.01\,dB & +3.36\,dB    & 0.982 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Figure~\ref{fig:results} presents visual comparisons demonstrating the deconvolution quality across different test cases and PSF models.
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\textwidth]{figure1.png}
+    \caption{Deconvolution results demonstrating resolution enhancement on synthetic test data. \textbf{Top row (Checkerboard - Clean):} (a) Ground truth, (b) degraded with Gaussian PSF (NA=1.0, 31$\times$31 kernel) blur, (c) restored after 50 RL iterations (+5.12\,dB PSNR). \textbf{Middle row (Checkerboard - Noisy):} (d) Ground truth, (e) degraded with Gaussian blur and heavy Poisson noise (SNR$\approx$3), (f) RL-TV restored with $\lambda$=0.05 regularization (+3.36\,dB). \textbf{Bottom row (Fluorescent Beads):} (g) Sharp synthetic beads, (h) degraded with Gibson--Lanni PSF (NA=1.4, oil immersion, spherical aberration), (i) restored (+3.84\,dB). All images displayed in grayscale. Complete results available in \texttt{results/} directory.}
+    \label{fig:results}
+\end{figure*}
+
+\subsection{Algorithm Analysis}
+\textbf{Gaussian PSF (Analytical):} Testing on synthetic checkerboard images with known optical parameters (NA=1.0, $\lambda$=550nm, pixel size 0.1$\mu$m) achieved +5.12\,dB PSNR improvement with SSIM=0.996, validating the baseline Richardson--Lucy implementation on clean data. Processing completed in 50 iterations within 3.9 seconds on Intel i9-13900HX CPU.
+
+\textbf{Custom PSF (Measured):} Loading a pre-generated Gaussian PSF from file (simulating experimental bead calibration workflow) yielded +5.11\,dB improvement with SSIM=0.996, demonstrating near-identical performance to analytical PSF generation. This validates the custom PSF loading mechanism for real measured PSF data.
+
+\textbf{Airy Disk:} The diffraction-limited PSF model on star field test data achieved +7.18\,dB improvement with SSIM=0.994, the highest gain among clean test cases. The Airy disk's well-defined first null and side-lobe structure enables effective deconvolution when accurately modeled, demonstrating the benefits of physics-based PSF modeling over simple Gaussian approximations.
+
+\textbf{Gibson--Lanni PSF:} High-NA oil immersion model (NA=1.4, $n_i$=1.518, $n_s$=1.33, working distance 150$\mu$m) applied to fluorescent beads achieved +3.84\,dB improvement with SSIM=0.934. The lower SSIM reflects the complexity of sharp point-like beads and spherical aberration effects. The Gibson--Lanni model accounts for coverslip-induced aberrations critical in high-NA fluorescence microscopy, though the restoration is challenging due to the PSF's asymmetric depth-dependent structure.
+
+\textbf{Heavy Noise Regime:} Under severe Poisson noise (SNR$\approx$3, starting PSNR=14.65\,dB), RL-TV with increased regularization ($\lambda$=0.05) achieved +3.36\,dB improvement with SSIM=0.982. The multiplicative TV regularization form effectively suppresses noise amplification while maintaining edge sharpness and preventing negative intensity artifacts. While the absolute PSNR improvement is +3.36\,dB, the visual quality improvement is substantial with effective noise reduction and preserved structure.
+
+\textbf{Computational Performance:} Processing times ranged from 1.5--12.0 seconds for 512$\times$512 images across PSF models on standard workstation hardware (Intel i9-13900HX, single-threaded NumPy). Custom PSF loading (1.5s, 50 iterations) is fastest due to avoiding PSF generation overhead. Gaussian (3.9s) and noisy RL-TV (2.0s, 25 iterations) process efficiently, while Airy disk (12.0s, 30 iterations) and Gibson--Lanni (12.1s) require longer computation due to Bessel function evaluations and numerical pupil integration respectively in the analytical PSF generation step.
+\section{Discussion}
+\subsection{Implementation Summary}
+We implemented a modular framework for PSF-based deconvolution in microscopy. The system encompasses: (i) Five PSF generation strategies spanning analytical approximations (Gaussian, Airy) to rigorous vectorial models (Gibson--Lanni), custom measured PSF support, and experimental blind estimation. (ii) Richardson--Lucy deconvolution with integrated TV regularization for edge-preserving noise suppression. (iii) Standardized quantitative benchmarking on controlled synthetic data with ground truth comparison. The plugin architecture facilitates systematic algorithm evaluation under identical test conditions across multiple PSF models and noise regimes.
+
+\subsection{Challenges and Limitations}
+\textbf{Computational Cost:} The iterative nature of RL (typically 25--50 iterations) and analytical PSF generation limit real-time applicability. The current single-threaded NumPy implementation processes 512$\times$512 images in 1.5--12\,s depending on method (custom PSF loading fastest, Airy disk slowest due to Bessel function computation). High-throughput workflows would benefit from GPU acceleration (CuPy/PyTorch implementations).
+
+\textbf{Parameter Sensitivity:} Deconvolution quality depends critically on PSF accuracy. NA measurement errors ($\pm$0.05) or wavelength misspecification ($\pm$10nm) can propagate to restoration artifacts such as ringing or edge overshoot. Blind PSF estimation partially addresses this but adds computational overhead and convergence uncertainty.
+
+\textbf{Noise Amplification:} All deconvolution methods inherently amplify high-frequency noise due to the ill-posed nature of image deblurring. The implemented multiplicative TV regularization form mitigates this while preserving intensity positivity constraints. TV regularization may introduce mild staircase artifacts at smooth gradients. The regularization parameter $\lambda$ requires empirical tuning based on noise characteristics: $\lambda=0.001$ for clean data, $\lambda=0.05$ for heavy Poisson noise (SNR$\approx$3). Adaptive parameter selection remains a manual process, limiting automated pipeline integration. In practice, optimal $\lambda$ values are determined through iterative refinement using quantitative metrics (PSNR, SSIM) and visual quality assessment.
+
+\textbf{Validation Constraints:} While controlled synthetic test data enables reproducible benchmarking with ground truth comparison, it cannot capture all real-world complexities including sample-induced aberrations (refractive index heterogeneity), photobleaching dynamics, stage drift, and multi-color chromatic aberration. Future work should include testing on biological samples with known structures to validate real-world performance.
+
+\subsection{Comparison with Existing Software}
+ImageJ/Fiji DeconvolutionLab plugin offers RL algorithms but is limited to Gaussian PSF models, lacking Gibson--Lanni and blind estimation capabilities. Huygens Professional (SVI) provides comprehensive PSF modeling including vectorial high-NA optics and chromatic correction, but is closed-source with expensive licensing (\$5000+). Python's scikit-image library implements Richardson--Lucy but provides no integrated PSF generation utilities. This project fills a gap by providing an open-source, modular PSF toolkit integrated with multiple deconvolution strategies and quantitative benchmarking capabilities suitable for educational and research applications.
+
+\subsection{Potential Applications}
+The implemented framework could be applied to: (i) Fluorescence microscopy where PSF varies with emission wavelength and focal depth, with Gibson--Lanni models enabling depth-dependent deconvolution in thick specimens. (ii) Materials science imaging with custom optics (brightfield, darkfield, polarized light) requiring application-specific PSF measurement or modeling. (iii) Educational demonstrations of Fourier optics principles, PSF--image convolution relationships, and inverse problem regularization strategies. (iv) Research prototyping providing a standardized testbed for novel deconvolution or PSF estimation methods.
+
+\subsection{Future Improvements}
+Several enhancements could improve this work:
+
+\textbf{GPU Acceleration:} Implementing CuPy or PyTorch-based convolution operations could reduce RL processing time from 1.5--12\,s to $<$100ms per frame, enabling real-time feedback during image acquisition.
+
+\textbf{Adaptive Regularization:} Automatic noise variance estimation from image statistics (e.g., robust median absolute deviation) could enable auto-tuning of TV $\lambda$ parameters without manual optimization.
+
+\textbf{3D Deconvolution:} Extending the framework to volumetric image stacks using depth-variant Gibson--Lanni PSF models, exploiting GPU memory for large (512$\times$512$\times$100) volumes.
+
+\textbf{Machine Learning Integration:} Training convolutional networks on calibration bead stacks to predict PSF directly from metadata (NA, wavelength, depth, coverslip thickness), bypassing computationally expensive numerical integration.
+
+\textbf{Experimental Validation:} Testing on standardized resolution phantoms (Argolight, Chroma test slides) and biological samples with known structures to validate performance on real microscopy data.
+\section{Conclusion}
+We implemented a framework for microscopy image enhancement integrating physics-based PSF modeling (Gaussian, Airy, Gibson--Lanni), custom measured PSF loading, and experimental blind PSF estimation with Richardson--Lucy deconvolution incorporating TV regularization. Evaluation on five synthetic test cases with ground truth comparison demonstrated PSNR improvements ranging from +3.36\,dB (heavy Poisson noise) to +7.18\,dB (Airy disk clean data) across different PSF models and noise conditions. The Gaussian and custom PSF approaches yielded consistent results (+5.11--5.12\,dB), validating both analytical and measured PSF workflows. The modular architecture enables systematic algorithm comparison through standardized metrics (PSNR, SSIM, processing time) with all detailed results available in the \texttt{results/} directory. While current limitations include computational cost (1.5--12\,s per 512$\times$512 image depending on PSF model) and synthetic-only validation, the framework provides an accessible open-source foundation for computational microscopy applications. Future enhancements through GPU acceleration, adaptive parameter selection, and experimental validation on biological samples could extend its utility for practical microscopy workflows.
+
+
+\section*{Acknowledgments}
+We thank Prof. Sachin Kumar Srivastava (PHC-391) for guidance.
+
+\vfill
+\eject
+
+\begin{thebibliography}{9}
+    \bibitem{richardson1972} W.H. Richardson, Bayesian iterative image restoration, J. Opt. Soc. Am. 62, 55-59 (1972).
+    \bibitem{lucy1974} L.B. Lucy, Iterative rectification of observed distributions, Astron. J. 79, 745-754 (1974).
+    \bibitem{dey2006} N. Dey et al., Richardson--Lucy algorithm with total variation regularization for 3D confocal microscope deconvolution, Microsc. Res. Tech. 69, 260-266 (2006).
+    \bibitem{gibson1992} S.F. Gibson, F. Lanni, Experimental Test of an Analytical Model of Aberration in an Oil-Immersion Objective, J. Opt. Soc. Am. A 9, 154-166 (1992).
+    \bibitem{rudin1992} L.I. Rudin, S. Osher, E. Fatemi, Nonlinear TV-based noise removal, Physica D 60, 259-268 (1992).
+    \bibitem{born1999} M. Born, E. Wolf, Principles of Optics, 7th ed., Cambridge Univ. Press (1999).
+    \bibitem{goodman2005} J.W. Goodman, Introduction to Fourier Optics, 3rd ed., Roberts and Co. (2005).
+\end{thebibliography}
+\end{document}

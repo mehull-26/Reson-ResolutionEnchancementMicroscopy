@@ -1,0 +1,22 @@
+{
+  "image": "degraded.tif",
+  "output": "degraded_enhanced.tif",
+  "shape": [
+    512,
+    512
+  ],
+  "psnr_before": 21.680299758911133,
+  "psnr_after": 26.800477981567383,
+  "psnr_improvement": 5.12017822265625,
+  "ssim_before": 0.9866288900375366,
+  "ssim_after": 0.9959221482276917,
+  "ssim_improvement": 0.00929325819015503,
+  "mse_before": 0.006791568361222744,
+  "mse_after": 0.002089066430926323,
+  "sharpness_before": 0.21981032192707062,
+  "sharpness_after": 0.23808366060256958,
+  "sharpness_improvement": 0.018273338675498962,
+  "laplacian_before": 215.05837462842464,
+  "laplacian_after": 2305.023593435937,
+  "laplacian_improvement": 2089.9652188075124
+}

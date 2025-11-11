@@ -1,0 +1,41 @@
+# Richardson-Lucy Deconvolution with Custom (Measured) PSF
+# Test Case: checkerboard_gaussian_clean
+# Purpose: Realistic scenario with measured/loaded PSF
+
+version: v1
+experiment_name: "deconv_rl_custom"
+
+enhancement:
+  modules:
+    - name: "Richardson-Lucy Deconvolution (Custom PSF from file)"
+      type: RichardsonLucy
+      enabled: true
+      params:
+        iterations: 50                     # Match known PSF config for fair comparison
+        regularization: 0.001
+        clip_negative: true
+        convergence_threshold: null
+        
+        # Custom PSF loaded from file (simulating measured PSF)
+        # Generated with: wavelength=550nm, NA=1.0, pixel_size=0.1μm, size=31
+        psf_method: "custom"
+        psf_params:
+          psf_file: "data/synthetic_psf/checkerboard_gaussian_clean/psf.tif"
+
+io:
+  input_format: auto
+  output_format: tif
+  output_bit_depth: 16
+  normalize_input: true
+  preserve_dtype: false
+
+processing:
+  convert_to_grayscale: false
+  clip_output: true
+
+metrics:
+  enabled: true
+  compute:
+    - sharpness
+    - laplacian_variance
+    - brenner_sharpness
